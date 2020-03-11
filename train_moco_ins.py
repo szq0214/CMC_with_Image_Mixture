@@ -28,6 +28,8 @@ from NCE.NCECriterion import NCESoftmaxLoss
 
 from dataset import ImageFolderInstance
 
+from IM.mixture import *
+
 try:
     from apex import amp, optimizers
 except ImportError:
@@ -48,11 +50,11 @@ def parse_option():
     parser.add_argument('--save_freq', type=int, default=10, help='save frequency')
     parser.add_argument('--batch_size', type=int, default=128, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=18, help='num of workers to use')
-    parser.add_argument('--epochs', type=int, default=240, help='number of training epochs')
+    parser.add_argument('--epochs', type=int, default=600, help='number of training epochs')
 
     # optimization
     parser.add_argument('--learning_rate', type=float, default=0.03, help='learning rate')
-    parser.add_argument('--lr_decay_epochs', type=str, default='120,160,200', help='where to decay lr, can be a list')
+    parser.add_argument('--lr_decay_epochs', type=str, default='360,480,540', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam')
     parser.add_argument('--beta2', type=float, default=0.999, help='beta2 for Adam')
@@ -60,10 +62,41 @@ def parse_option():
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 
     # crop
-    parser.add_argument('--crop', type=float, default=0.2, help='minimum crop')
+    parser.add_argument('--crop', type=float, default=0.1, help='minimum crop')
 
     # dataset
     parser.add_argument('--dataset', type=str, default='imagenet100', choices=['imagenet100', 'imagenet'])
+
+    # specify folder
+    parser.add_argument('--data_folder', type=str, default=None, help='path to data')
+    parser.add_argument('--model_path', type=str, default=None, help='path to save model')
+    parser.add_argument('--tb_path', type=str, default=None, help='path to tensorboard')
+
+    # IM settings
+    parser.add_argument('--IM', action='store_true', help='with IM space')
+    parser.add_argument('--IM_type', type=str, default='ours',
+                        choices=['IM', 'global', 'region', 'Cutout', 'RandomErasing'])
+    # global mixture
+    parser.add_argument('--g_alpha', type=float, default=1.0, help='global mix alpha')
+    parser.add_argument('--g_num', type=int, default=2, help='global mix num')
+    parser.add_argument('--g_prob', type=float, default=0.1, help='global mix prob')
+    # Region level
+    parser.add_argument('--r_beta', type=float, default=1, help='region mix beta')
+    parser.add_argument('--r_prob', type=float, default=0.1, help='region mix prob')
+    parser.add_argument('--r_num', type=int, default=2, help='region mix num')
+    parser.add_argument('--r_pixel_decay', type=float, default=1.0, help='region mix pixel decay')
+
+    # Cutout
+    parser.add_argument('--mask_size', type=float, default=50, help='mask size')
+    parser.add_argument('--cutout_p', type=float, default=0.1, help='cutout prob')
+    parser.add_argument('--cutout_inside', action='store_true', default=False, help='inside or outside')
+    parser.add_argument('--mask_color', type=int, default=0, help='mask color')
+
+    # RandomErasing
+    parser.add_argument('--area_ratio_range', type=tuple, default=[0.02, 0.4], help='mask size')
+    parser.add_argument('--random_erasing_prob', type=float, default=0.1, help='random erasing prob')
+    parser.add_argument('--min_aspect_ratio', type=float, default=0.3, help='inside or outside')
+    parser.add_argument('--max_attempt', type=int, default=20, help='mask color')
 
     # resume
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
@@ -96,12 +129,12 @@ def parse_option():
     opt = parser.parse_args()
 
     # set the path according to the environment
-    if hostname.startswith('visiongpu'):
-        opt.data_folder = '/dev/shm/yonglong/{}'.format(opt.dataset)
-        opt.model_path = '/data/vision/phillipi/rep-learn/Pedesis/CMC/{}_models'.format(opt.dataset)
-        opt.tb_path = '/data/vision/phillipi/rep-learn/Pedesis/CMC/{}_tensorboard'.format(opt.dataset)
-    else:
-        raise NotImplementedError('server invalid: {}'.format(hostname))
+    # if hostname.startswith('visiongpu'):
+    #     opt.data_folder = '/dev/shm/yonglong/{}'.format(opt.dataset)
+    #     opt.model_path = '/data/vision/phillipi/rep-learn/Pedesis/CMC/{}_models'.format(opt.dataset)
+    #     opt.tb_path = '/data/vision/phillipi/rep-learn/Pedesis/CMC/{}_tensorboard'.format(opt.dataset)
+    # else:
+    #     raise NotImplementedError('server invalid: {}'.format(hostname))
 
     if opt.dataset == 'imagenet':
         if 'alexnet' not in opt.model:
@@ -188,6 +221,25 @@ def main():
 
     train_dataset = ImageFolderInstance(data_folder, transform=train_transform, two_crop=args.moco)
     print(len(train_dataset))
+
+    if args.IM:
+        # print("using IM space.................")
+        if args.IM_type == 'IM':
+            print("using IM space.................")
+            train_dataset = IM(train_dataset, g_alpha=args.g_alpha, g_num_mix=args.g_num, g_prob=args.g_prob, r_beta=args.r_beta, r_prob=args.r_prob, r_num_mix=args.r_num, r_decay=args.r_pixel_decay)
+        if args.IM_type == 'global':
+            print("using global space.................")
+            train_dataset = global_(train_dataset, g_alpha=args.g_alpha, g_num_mix=args.g_num, g_prob=args.g_prob)
+        if args.IM_type == 'region':
+            print("using region space.................")
+            train_dataset = region(train_dataset, r_beta=args.r_beta, r_prob=args.r_prob, r_num_mix=args.r_num, r_decay=args.r_pixel_decay)
+        if args.IM_type == 'Cutout':
+            print("using Cutout aug.................")
+            train_dataset = Cutout(train_dataset, mask_size=args.mask_size, p=args.cutout_p, cutout_inside=args.cutout_inside, mask_color=args.mask_color)
+        if args.IM_type == 'RandomErasing':
+            print("using RandomErasing aug.................")
+            train_dataset = RandomErasing(train_dataset, p=args.random_erasing_prob, area_ratio_range=args.area_ratio_range, min_aspect_ratio=args.min_aspect_ratio, max_attempt=args.max_attempt)
+
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),

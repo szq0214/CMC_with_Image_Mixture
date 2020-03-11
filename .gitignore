@@ -9,7 +9,10 @@ ckpts/
 tmp*.py
 # run*.sh
 *.pdf
-
+save_models/
+save_models
+tensorboard/
+tensorboard
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

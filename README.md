@@ -4,7 +4,7 @@ Unofficial implementation:
 
 Official implementation:
 - CMC: Contrastive Multiview Coding ([Paper](http://arxiv.org/abs/1906.05849))
-
+- Rethinking Image Mixture for UnsupervisedVisual Representation Learning ([Paper]())
 ## Contrastive Multiview Coding
 
 This repo covers the implementation for CMC (as well as Momentum Contrast and Instance Discrimination), which learns representations from multiview data in a self-supervised way (by multiview, we mean multiple sensory, multiple modal data, or literally multiple viewpoint data. It's flexible to define what is a "view"):
@@ -57,6 +57,21 @@ Path flags:
 
 Model flag:
 - `--model`: specify which model to use, including *alexnet*, *resnets18*, *resnets50*, and *resnets101*
+
+IM flag:
+- `--IM`: train with IM space.
+- `--IM_type`: specify the type of IM and other augmentation methods that we implement, including: 'IM', 'global', 'region', 'Cutout', 'RandomErasing'.
+
+Global mixture:
+- `--g_alpha`: global mix alpha. Default: 1.0
+- `--g_num`: global mix num. Default: 2
+- `--g_prob`: global mix prob. Default: 0.1
+
+Region-level mixture:
+- `--r_beta`: region mix beta. Default: 1.0
+- `--r_prob`: region mix prob. Default: 0.1
+- `--r_num`: region mix num. Default: 2
+- `--r_pixel_decay`: region mix pixel decay. Default: 1.0
 
 An example of command line for training CMC (Default: `AlexNet` on Single GPU)
 ```
