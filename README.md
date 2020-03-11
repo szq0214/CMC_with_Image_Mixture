@@ -4,7 +4,7 @@ Unofficial implementation:
 
 Official implementation:
 - CMC: Contrastive Multiview Coding ([Paper](http://arxiv.org/abs/1906.05849))
-- Rethinking Image Mixture for UnsupervisedVisual Representation Learning ([Paper]())
+- Rethinking Image Mixture for Unsupervised Visual Representation Learning ([Paper]())
 ## Contrastive Multiview Coding
 
 This repo covers the implementation for CMC (as well as Momentum Contrast and Instance Discrimination), which learns representations from multiview data in a self-supervised way (by multiview, we mean multiple sensory, multiple modal data, or literally multiple viewpoint data. It's flexible to define what is a "view"):
