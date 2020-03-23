@@ -69,19 +69,19 @@ def parse_option():
 
     # specify folder
     parser.add_argument('--data_folder', type=str, default=None, help='path to data')
-    parser.add_argument('--model_path', type=str, default=None, help='path to save model')
-    parser.add_argument('--tb_path', type=str, default=None, help='path to tensorboard')
+    parser.add_argument('--model_path', type=str, default='./save_models', help='path to save model')
+    parser.add_argument('--tb_path', type=str, default='./save_tb', help='path to save tensorboard')
 
     # IM settings
     parser.add_argument('--IM', action='store_true', help='with IM space')
-    parser.add_argument('--IM_type', type=str, default='ours',
+    parser.add_argument('--IM_type', type=str, default='IM',
                         choices=['IM', 'global', 'region', 'Cutout', 'RandomErasing'])
     # global mixture
     parser.add_argument('--g_alpha', type=float, default=1.0, help='global mix alpha')
     parser.add_argument('--g_num', type=int, default=2, help='global mix num')
     parser.add_argument('--g_prob', type=float, default=0.1, help='global mix prob')
-    # Region level
-    parser.add_argument('--r_beta', type=float, default=1, help='region mix beta')
+    # region level
+    parser.add_argument('--r_beta', type=float, default=1.0, help='region mix beta')
     parser.add_argument('--r_prob', type=float, default=0.1, help='region mix prob')
     parser.add_argument('--r_num', type=int, default=2, help='region mix num')
     parser.add_argument('--r_pixel_decay', type=float, default=1.0, help='region mix pixel decay')
